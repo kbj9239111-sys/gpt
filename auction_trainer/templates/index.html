@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>경매 낙찰가 트레이너</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:#f0f4f8;color:#1e293b;min-height:100vh}
+.header{background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:18px 24px}
+.header h1{font-size:18px;font-weight:800;color:#fff}
+.header .sub{font-size:12px;color:#93c5fd;margin-top:2px}
+.tabs{display:flex;background:#1e293b;padding:0 16px;overflow-x:auto}
+.tab{padding:12px 18px;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:.15s}
+.tab.on{color:#60a5fa;border-bottom-color:#60a5fa}
+.tab:hover:not(.on){color:#cbd5e1}
+.pane{display:none;padding:20px;max-width:960px;margin:0 auto}
+.pane.on{display:block}
+.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card-title{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:14px}
+textarea{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;font-size:12px;font-family:inherit;resize:vertical;outline:none;transition:.15s}
+textarea:focus{border-color:#3b82f6}
+.inp{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:13px;font-family:inherit;outline:none;transition:.15s}
+.inp:focus{border-color:#3b82f6}
+.lbl{font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:5px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:.15s}
+.btn-blue{background:#2563eb;color:#fff}.btn-blue:hover{background:#1d4ed8}
+.btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
+.btn-gray{background:#f1f5f9;color:#475569;border:1.5px solid #e2e8f0}.btn-gray:hover{background:#e2e8f0}
+.btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
+.btn-sm{padding:6px 12px;font-size:12px}
+.chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;margin:2px}
+.chip-gray{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}
+.chip-blue{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+.chip-green{background:#f0fdf4;color:#16a34a;border:1px solid #86efac}
+.chip-red{background:#fef2f2;color:#dc2626;border:1px solid #fca5a5}
+.chip-yellow{background:#fefce8;color:#ca8a04;border:1px solid #fde68a}
+.chip-purple{background:#faf5ff;color:#7c3aed;border:1px solid #ddd6fe}
+.chip-orange{background:#fff7ed;color:#ea580c;border:1px solid #fed7aa}
+.pred-box{background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:14px;padding:22px;color:#fff;margin-bottom:14px}
+.pred-main{text-align:center;padding:16px;background:rgba(255,255,255,.07);border-radius:10px;margin:12px 0}
+.pred-price{font-size:40px;font-weight:900;color:#fbbf24}
+.pred-range{font-size:13px;color:#94a3b8;margin-top:5px}
+.pred-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.pred-cell{text-align:center}
+.pred-cell-lbl{font-size:10px;color:#93c5fd;margin-bottom:3px}
+.pred-cell-val{font-size:14px;font-weight:700;color:#e2e8f0}
+.conf-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.stat-box{background:linear-gradient(135deg,#064e3b,#065f46);border-radius:14px;padding:20px;color:#fff;margin-bottom:14px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.stat-cell{text-align:center;background:rgba(255,255,255,.08);border-radius:10px;padding:12px}
+.stat-lbl{font-size:10px;color:#6ee7b7;margin-bottom:4px}
+.stat-val{font-size:20px;font-weight:800;color:#fff}
+.stat-sub{font-size:11px;color:#a7f3d0;margin-top:2px}
+.rec-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:.15s}
+.rec-card:hover{border-color:#93c5fd}
+.rec-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px}
+.rec-model{font-size:14px;font-weight:700;color:#0f172a}
+.rec-sub{font-size:12px;color:#64748b;margin-top:2px}
+.rec-prices{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:8px}
+.rp-item{text-align:center}
+.rp-lbl{font-size:10px;color:#94a3b8;margin-bottom:2px}
+.rp-val{font-size:15px;font-weight:800}
+.factor-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.factor-row:last-child{border-bottom:none}
+.diff-pos{color:#16a34a}
+.diff-neg{color:#dc2626}
+.diff-neu{color:#64748b}
+.opt-tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;margin:2px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;animation:fadeIn .2s ease}
+.t-ok{background:#16a34a;color:#fff}
+.t-err{background:#dc2626;color:#fff}
+@keyframes fadeIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.empty{text-align:center;padding:40px;color:#94a3b8}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏆 경매 낙찰가 트레이너</h1>
+  <div class="sub">데이터가 쌓일수록 예측이 정확해집니다</div>
+</div>
+
+<div class="tabs">
+  <div class="tab on"  id="tb-input"   onclick="showTab('input')">📥 데이터 입력</div>
+  <div class="tab"     id="tb-predict" onclick="showTab('predict')">🤖 낙찰가 예측</div>
+  <div class="tab"     id="tb-history" onclick="showTab('history')">📋 이력 조회</div>
+  <div class="tab"     id="tb-stats"   onclick="showTab('stats')">📊 정확도 분석</div>
+  <div class="tab"     id="tb-weights" onclick="showTab('weights')">⚙️ 가중치 설정</div>
+</div>
+
+<div id="toast-wrap" class="toast-wrap"></div>
+
+<!-- ══════════════════════════════════════════
+     탭1: 데이터 입력
+══════════════════════════════════════════ -->
+<div id="pane-input" class="pane on">
+  <div class="card">
+    <div class="card-title">📋 경매 원문 붙여넣기</div>
+    <textarea id="inp-raw" rows="9" placeholder="헤이딜러, 오토인사이드 등 경매 매물 정보를 그대로 붙여넣으세요..."></textarea>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn btn-blue" onclick="parseRaw()">🔍 자동 분석</button>
+      <button class="btn btn-gray" onclick="resetForm()">✕ 초기화</button>
+    </div>
+  </div>
+
+  <div id="parsed-result" style="display:none">
+    <div class="card">
+      <div class="card-title">✅ 분석 결과 — 확인 후 저장</div>
+
+      <!-- 차량 기본 정보 -->
+      <div class="g3" style="margin-bottom:12px">
+        <div><span class="lbl">브랜드</span><input class="inp" id="p-brand" placeholder="쉐보레"></div>
+        <div><span class="lbl">모델명</span><input class="inp" id="p-model" placeholder="트레일블레이저"></div>
+        <div><span class="lbl">트림 (전체)</span><input class="inp" id="p-trim" placeholder="1.3 터보 2WD RS"></div>
+      </div>
+      <div class="g4" style="margin-bottom:12px">
+        <div><span class="lbl">연식</span><input class="inp" id="p-year" type="number" placeholder="2023"></div>
+        <div><span class="lbl">주행거리 (km)</span><input class="inp" id="p-km" type="number" placeholder="63690"></div>
+        <div><span class="lbl">연료</span><input class="inp" id="p-fuel" placeholder="휘발유"></div>
+        <div><span class="lbl">색상</span><input class="inp" id="p-color" placeholder="스노우 화이트 펄"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <span class="lbl">옵션 (쉼표 구분 · 취소선 항목은 빼고 입력)</span>
+        <input class="inp" id="p-options" placeholder="내비게이션, HUD, 통풍시트(운전석), 통풍시트(동승석), ACC, SBZA, 파워테일게이트, LED헤드램프">
+      </div>
+      <div class="g2" style="margin-bottom:12px">
+        <div><span class="lbl">신차가 (만원)</span><input class="inp" id="p-newprice" type="number" placeholder="2695"></div>
+        <div><span class="lbl">재고 일수</span><input class="inp" id="p-stockdays" type="number" placeholder="30"></div>
+      </div>
+
+      <!-- 사고/피해 -->
+      <div style="background:#fff5f5;border:1.5px solid #fca5a5;border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:10px">⚠️ 사고 / 피해 정보</div>
+        <div class="g4">
+          <div>
+            <span class="lbl">사고 유무</span>
+            <select class="inp" id="p-accident">
+              <option value="">선택</option>
+              <option value="무사고">무사고 / 완전무사고</option>
+              <option value="사고">사고있음</option>
+            </select>
+          </div>
+          <div>
+            <span class="lbl">내차 피해 건수</span>
+            <input class="inp" id="p-mydmg" type="number" value="0" min="0">
+            <div style="font-size:11px;color:#94a3b8;margin-top:3px">내 차량이 직접 손상된 횟수</div>
+          </div>
+          <div>
+            <span class="lbl">타차 가해 건수</span>
+            <input class="inp" id="p-othdmg" type="number" value="0" min="0">
+            <div style="font-size:11px;color:#94a3b8;margin-top:3px">상대 차량에 피해를 준 횟수</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 경매 현황 -->
+      <div class="g3">
+        <div><span class="lbl">경쟁자 수 (명)</span><input class="inp" id="p-participants" type="number"></div>
+        <div><span class="lbl">조회수 (명)</span><input class="inp" id="p-views" type="number"></div>
+        <div><span class="lbl">메모</span><input class="inp" id="p-memo"></div>
+      </div>
+    </div>
+
+    <!-- 입찰 결과 -->
+    <div class="card" style="border:1.5px solid #a7f3d0">
+      <div class="card-title">💰 입찰 결과</div>
+      <div class="g4">
+        <div>
+          <span class="lbl">내 견적 (만원)</span>
+          <input class="inp" id="p-mybid" type="number" style="font-size:16px;font-weight:700">
+        </div>
+        <div>
+          <span class="lbl">실제 낙찰가 (만원)</span>
+          <input class="inp" id="p-highest" type="number" style="font-size:16px;font-weight:700;color:#2563eb">
+        </div>
+        <div>
+          <span class="lbl">낙찰 여부</span>
+          <select class="inp" id="p-won">
+            <option value="">모름 / 미참여</option>
+            <option value="win">낙찰 성공</option>
+            <option value="lose">낙찰 실패</option>
+          </select>
+        </div>
+      </div>
+        <div>
+          <span class="lbl">경매종료일</span>
+          <input class="inp" id="p-enddate" type="date">
+        </div>
+    </div>
+
+    <button class="btn btn-green" onclick="saveAuction()" style="width:100%;justify-content:center;font-size:15px;padding:14px">
+      💾 데이터 저장
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭2: 낙찰가 예측
+══════════════════════════════════════════ -->
+<div id="pane-predict" class="pane">
+  <div class="card">
+    <div class="card-title">🔮 새 매물 낙찰가 예측</div>
+    <textarea id="pred-raw" rows="9" placeholder="분석할 매물 정보를 붙여넣으세요..."></textarea>
+    <div style="margin-top:10px">
+      <button class="btn btn-blue" onclick="runPredict()">🤖 예측 실행</button>
+    </div>
+  </div>
+  <div id="pred-result"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭3: 이력 조회
+══════════════════════════════════════════ -->
+<div id="pane-history" class="pane">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+    <div style="font-size:13px;font-weight:700">저장된 이력 <span id="his-count" style="color:#2563eb">0</span>건</div>
+    <input class="inp" id="his-search" placeholder="모델명 검색..."
+      style="width:200px;padding:7px 12px;font-size:12px" oninput="renderHistory()">
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭4: 정확도 분석
+══════════════════════════════════════════ -->
+<div id="pane-stats" class="pane">
+  <div id="stats-content"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     탭5: 가중치 설정
+══════════════════════════════════════════ -->
+<div id="pane-weights" class="pane">
+  <!-- 옵션 가중치 -->
+  <div class="card">
+    <div class="card-title">🔧 옵션별 낙찰가 영향 (만원)</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px">
+      해당 옵션이 있을 때 낙찰가에 더해지는 금액입니다. 데이터가 쌓이면 실제 차이로 자동 계산됩니다.
+    </div>
+    <div id="opt-weight-list"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <input class="inp" id="new-opt-name" placeholder="새 옵션명..." style="flex:1;min-width:150px">
+      <input class="inp" id="new-opt-val"  placeholder="기본값(만원)" type="number" style="width:110px">
+      <button class="btn btn-blue btn-sm" onclick="addOpt()">+ 추가</button>
+    </div>
+  </div>
+
+  <!-- 색상 가중치 -->
+  <div class="card" style="border:1.5px solid #fde68a">
+    <div class="card-title">🎨 색상별 가중치 (만원)</div>
+    <div id="color-weight-list"></div>
+  </div>
+
+  <!-- 피해 감가 -->
+  <div class="card" style="border:1.5px solid #fca5a5">
+    <div class="card-title">⚠️ 피해 건수별 감가 (만원 / 건)</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:12px">
+      피해 건수가 1건 늘어날 때마다 낙찰가에서 차감되는 금액입니다.
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div>
+        <span class="lbl">내차 피해 1건당 감가</span>
+        <input class="inp" id="w-mydmg" type="number" value="30">
+        <div style="font-size:11px;color:#94a3b8;margin-top:3px">내 차량 직접 손상 (더 큰 영향)</div>
+      </div>
+      <div>
+        <span class="lbl">타차 가해 1건당 감가</span>
+        <input class="inp" id="w-othdmg" type="number" value="15">
+        <div style="font-size:11px;color:#94a3b8;margin-top:3px">상대방 피해 (상대적으로 작은 영향)</div>
+      </div>
+    </div>
+    <button class="btn btn-gray btn-sm" onclick="saveDmgWeights()">저장</button>
+  </div>
+</div>
+
+<script>
+var auctions = [];
+
+// ── 기본 가중치 ────────────────────────────────────
+var OPT_W = {
+  '파노라마 선루프': 60,
+  '선루프': 45,
+  '통풍시트(운전석+동승석)': 45,
+  '통풍시트(운전석)': 25,
+  '통풍시트(동승석)': 20,
+  '헤드업 디스플레이(HUD)': 35, 'HUD': 35,
+  '어댑티브 크루즈컨트롤(ACC)': 30, 'ACC': 30,
+  '사각지대 경고시스템(SBZA)': 15, 'SBZA': 15,
+  '파워 테일게이트': 20, '파워테일게이트': 20,
+  'LED헤드램프': 10,
+  '내비게이션(정품)': 12, '내비게이션': 10,
+  '듀얼 풀오토에어컨': 8,
+  '열선시트(앞좌석)': 8, '열선시트': 8,
+  '전동시트(운전석)': 12,
+  '360도 카메라': 20,
+  '디지털 계기판': 18,
+  'BOSE 오디오': 25,
+  '원격 시동': 10
+};
+
+var COLOR_W = {
+  '스노우 화이트 펄': 35, '화이트 펄': 30,
+  '스노우 화이트': 28, '화이트': 25, '흰색': 25,
+  '실버': 15, '화이트 실버': 18,
+  '블랙': 5, '검정': 5,
+  '그레이': 0, '차콜': 0,
+  '블루': -5, '레드': -10, '빨강': -10,
+  '옐로우': -20, '노랑': -20
+};
+
+var DMG_W = { myDmg: 30, othDmg: 15 };
+
+// ── 탭 ────────────────────────────────────────────
+function showTab(id) {
+  ['input','predict','history','stats','weights'].forEach(function(p) {
+    document.getElementById('pane-'+p).className = 'pane' + (p===id ? ' on' : '');
+    var tb = document.getElementById('tb-'+p);
+    if (tb) tb.className = 'tab' + (p===id ? ' on' : '');
+  });
+  if (id === 'history') renderHistory();
+  if (id === 'stats')   renderStats();
+  if (id === 'weights') renderWeights();
+}
+
+function showToast(msg, cls) {
+  var w = document.getElementById('toast-wrap');
+  var el = document.createElement('div');
+  el.className = 'toast ' + (cls || 't-ok');
+  el.textContent = msg;
+  w.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 2800);
+}
+
+function fp(n)  { if (!n && n !== 0) return '-'; return Number(n).toLocaleString() + '만원'; }
+function pct(n) { if (!n && n !== 0) return '-'; return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'; }
+
+// ── API ───────────────────────────────────────────
+function loadData() {
+  fetch('/api/auctions').then(function(r){ return r.json(); }).then(function(d){ auctions = d; });
+}
+
+function saveAuction() {
+  var opts = document.getElementById('p-options').value
+    .split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  var rec = {
+    brand:        document.getElementById('p-brand').value.trim(),
+    model:        document.getElementById('p-model').value.trim(),
+    trim:         document.getElementById('p-trim').value.trim(),
+    year:         Number(document.getElementById('p-year').value) || null,
+    km:           Number(document.getElementById('p-km').value)   || null,
+    fuel:         document.getElementById('p-fuel').value.trim(),
+    color:        document.getElementById('p-color').value.trim(),
+    accident:     document.getElementById('p-accident').value,
+    myDmg:        Number(document.getElementById('p-mydmg').value)  || 0,
+    othDmg:       Number(document.getElementById('p-othdmg').value) || 0,
+    newPrice:     Number(document.getElementById('p-newprice').value) || null,
+    stockDays:    Number(document.getElementById('p-stockdays').value) || null,
+    options:      opts,
+    participants: Number(document.getElementById('p-participants').value) || null,
+    views:        Number(document.getElementById('p-views').value)  || null,
+    memo:         document.getElementById('p-memo').value.trim(),
+    myBid:        Number(document.getElementById('p-mybid').value)  || null,
+    highest:      Number(document.getElementById('p-highest').value)|| null,
+    auctionEnd:  document.getElementById('p-enddate') ? document.getElementById('p-enddate').value : '',
+    won:          document.getElementById('p-won').value,
+    raw:          document.getElementById('inp-raw').value.trim(),
+    date:         new Date().toISOString().slice(0, 10)
+  };
+  if (!rec.brand || !rec.model) { showToast('브랜드와 모델명은 필수입니다', 't-err'); return; }
+  fetch('/api/auctions', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(rec)
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if (d.ok) { auctions.push(rec); showToast('저장 완료!', 't-ok'); resetForm(); } })
+    .catch(function(){ showToast('저장 실패', 't-err'); });
+}
+
+// ── 파싱 ─────────────────────────────────────────
+function parseAuctionText(raw) {
+  var p = {
+    brand:'', model:'', trim:'', year:null, km:null,
+    fuel:'', color:'', accident:'', myDmg:0, othDmg:0,
+    newPrice:null, stockDays:null, options:[],
+    participants:null, views:null, myBid:null, highest:null, auctionEnd:''
+  };
+
+  // 연식
+  var ym = raw.match(/(\d{4})년/);   if (ym) p.year = Number(ym[1]);
+  // 주행거리
+  var km = raw.match(/([\d,]+)\s*km/i); if (km) p.km = Number(km[1].replace(/,/g,''));
+  // 연료
+  if      (/전기|EV/i.test(raw))          p.fuel = '전기';
+  else if (/하이브리드|HEV/i.test(raw))    p.fuel = '하이브리드';
+  else if (/디젤|diesel/i.test(raw))       p.fuel = '디젤';
+  else if (/LPG/i.test(raw))              p.fuel = 'LPG';
+  else if (/휘발유|가솔린/i.test(raw))     p.fuel = '휘발유';
+  // 사고
+  if      (/완전무사고|무사고/.test(raw))        p.accident = '무사고';
+  else if (/사고있음|사고유무\s*유/.test(raw))   p.accident = '사고';
+  // 내차 피해
+  var md = raw.match(/내\s*차\s*피해\s*\((\d+)건\)/); if (md) p.myDmg  = Number(md[1]);
+  // 타차 가해
+  var od = raw.match(/타\s*차\s*가해\s*\((\d+)건\)/); if (od) p.othDmg = Number(od[1]);
+  // 신차가
+  var np = raw.match(/신차정가[^:：]*[:：]\s*약?\s*([\d,]+)만원/);
+  if (!np) np = raw.match(/신차가\s*([\d,]+)/);
+  if (np) p.newPrice = Number(np[1].replace(/,/g,''));
+  // 재고일수
+  var sd = raw.match(/평균\s*재고\s*(\d+)일/); if (sd) p.stockDays = Number(sd[1]);
+  // 참여자/조회
+  var par = raw.match(/참여\s*(\d+)\s*명/); if (par) p.participants = Number(par[1]);
+  var vw  = raw.match(/조회\s*(\d+)\s*명/); if (vw)  p.views        = Number(vw[1]);
+  // 내 견적 / 최고가
+  var myb = raw.match(/내\s*견적[\s\n]+([\d,]+)/); if (myb) p.myBid   = Number(myb[1].replace(/,/g,''));
+  var hb  = raw.match(/최고가[\s\n]+([\d,]+)/);    if (hb)  p.highest = Number(hb[1].replace(/,/g,''));
+
+  // 경매 종료일 (YYYY-MM-DD)
+  var ed = raw.match(/경매\s*종료\s*([0-9]{4})[-./]([0-9]{2})[-./]([0-9]{2})/);
+  if (ed) p.auctionEnd = ed[1] + '-' + ed[2] + '-' + ed[3];
+  // 색상
+  var colorM = raw.match(/(스노우 화이트 펄|화이트 펄|스노우 화이트|화이트|흰색|실버|블랙|검정|그레이|차콜|블루|레드|옐로우|베이지|브라운|골드|하늘|네이비)/);
+  if (colorM) p.color = colorM[1];
+
+  // 브랜드
+  var brands = ['현대','기아','쉐보레','제네시스','르노삼성','르노','쌍용','KG모빌리티',
+    'BMW','벤츠','메르세데스','아우디','폭스바겐','토요타','혼다','닛산',
+    '포드','지프','볼보','테슬라','렉서스','링컨','캐딜락','미니','포르쉐'];
+  for (var i = 0; i < brands.length; i++) {
+    if (raw.indexOf(brands[i]) !== -1) { p.brand = brands[i]; break; }
+  }
+
+  // 모델명 (첫 줄), 트림 (두 번째 줄)
+  var lines = raw.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+
+  // 브랜드는 먼저 탐색(아래 brands 루프)하지만, model/trim은 줄 기반이 더 안정적이라 여기서 처리
+  if (lines.length > 0) {
+    p.model = lines[0].replace(p.brand, '').replace(/\s{2,}/g,' ').trim() || lines[0];
+  }
+
+  if (lines.length > 1) {
+    var s = lines[1];
+
+    // 섹션 헤더/잡음이면 트림으로 취급하지 않음
+    var isHeader = /(평균\s*재고|제원|옵션|출고\s*정보|신차정가|완전무사고|평가사|AI\s*자동\s*정리|고객\s*설명)/.test(s);
+    if (!isHeader) {
+      // 트림 키워드(인스퍼/시그니처 등) 또는 엔진/구동 표기 포함이면 트림으로 채택
+      var trimKw = /(인스퍼레이션|인스퍼|프레스티지|프리미엄|시그니처|노블레스|그래비티|트렌디|모던|스탠다드|럭셔리|디\s*에센셜|에센셜|RS|GT|N\s*Line|N-Line|터보|2WD|4WD|AWD|FWD|RWD|가솔린|휘발유|디젤|하이브리드|LPG|\d\.\d\s*|\d\.\d\s*터보|\d\.\d\s*가솔린|\d\.\d\s*디젤)/i.test(s);
+      if (trimKw || s.length <= 35) p.trim = s;
+    }
+  }
+
+  // 옵션: 취소선(~~...~~) 제거 후 "옵션" 섹션 추출
+  var noStrike = raw.replace(/~~[^~]+~~/g, '');
+  var optM = noStrike.match(/옵션\n([\s\S]*?)(?=\n쉐보레|\n현대|\n기아|\n.*출고\s*정보|\n신차정가|\n신차가|\n완전|\n평가|$)/);
+  if (optM) {
+    p.options = optM[1].split('\n')
+      .map(function(l){ return l.trim(); })
+      .filter(function(l){ return l.length > 2 && !/^\d+[\).]/.test(l) && !/^[*\-]/.test(l); });
+  }
+  return p;
+}
+
+function parseRaw() {
+  var raw = document.getElementById('inp-raw').value.trim();
+  if (!raw) { showToast('경매 정보를 입력하세요', 't-err'); return; }
+  var p = parseAuctionText(raw);
+  document.getElementById('p-brand').value        = p.brand;
+  document.getElementById('p-model').value        = p.model;
+  document.getElementById('p-trim').value         = p.trim;
+  document.getElementById('p-year').value         = p.year   || '';
+  document.getElementById('p-km').value           = p.km     || '';
+  document.getElementById('p-fuel').value         = p.fuel;
+  document.getElementById('p-color').value        = p.color;
+  document.getElementById('p-accident').value     = p.accident;
+  document.getElementById('p-mydmg').value        = p.myDmg  || 0;
+  document.getElementById('p-othdmg').value       = p.othDmg || 0;
+  document.getElementById('p-newprice').value     = p.newPrice   || '';
+  document.getElementById('p-stockdays').value    = p.stockDays  || '';
+  document.getElementById('p-options').value      = p.options.join(', ');
+  document.getElementById('p-participants').value = p.participants || '';
+  document.getElementById('p-views').value        = p.views  || '';
+  document.getElementById('p-mybid').value        = p.myBid  || '';
+  document.getElementById('p-highest').value      = p.highest|| '';
+  
+    if (document.getElementById('p-enddate')) document.getElementById('p-enddate').value = p.auctionEnd || '';
+document.getElementById('parsed-result').style.display = 'block';
+  showToast('분석 완료! 내용을 확인 후 저장하세요', 't-ok');
+}
+
+function resetForm() {
+  document.getElementById('inp-raw').value = '';
+  ['p-brand','p-model','p-trim','p-year','p-km','p-fuel','p-color',
+   'p-newprice','p-stockdays','p-options','p-participants','p-views',
+   'p-mybid','p-highest','p-memo'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('p-accident').value = '';
+  document.getElementById('p-won').value      = '';
+  document.getElementById('p-mydmg').value    = 0;
+  document.getElementById('p-othdmg').value   = 0;
+  document.getElementById('parsed-result').style.display = 'none';
+}
+
+// ── 예측 엔진 ─────────────────────────────────────
+function runPredict() {
+  var raw = document.getElementById('pred-raw').value.trim();
+  if (!raw) { showToast('매물 정보를 입력하세요', 't-err'); return; }
+  var p = parseAuctionText(raw);
+  var el = document.getElementById('pred-result');
+  if (!p.model) {
+    el.innerHTML = '<div class="card" style="color:#dc2626;text-align:center;padding:30px">모델명을 인식하지 못했습니다.<br>첫 줄에 차량명이 있는지 확인해주세요.</div>';
+    return;
+  }
+  var similar = findSimilar(p);
+  if (!similar.length) {
+    el.innerHTML = '<div class="card"><div class="empty"><div style="font-size:36px">📭</div>'
+      + '<div style="font-weight:700;font-size:14px;color:#475569;margin-top:10px">' + p.brand + ' ' + p.model + ' 데이터 없음</div>'
+      + '<div style="font-size:12px;margin-top:6px;color:#94a3b8">이 모델의 경매 이력을 먼저 입력해주세요.</div></div></div>';
+    return;
+  }
+  var pred = calcPrediction(p, similar);
+  el.innerHTML = renderPredCard(pred, p, similar);
+}
+
+function findSimilar(p) {
+  return auctions
+    .filter(function(r) {
+      if (!r.highest) return false;
+      if (p.brand && r.brand) return r.brand === p.brand && r.model === p.model;
+      return r.model === p.model;
+    })
+    .map(function(r) {
+      var s = 10; // 브랜드+모델 기본
+      // 트림 전체 일치 +8, 부분(마지막 단어) 일치 +4
+      if (p.trim && r.trim) {
+        if (r.trim === p.trim) s += 8;
+        else {
+          var pa = p.trim.split(/\s+/), ra = r.trim.split(/\s+/);
+          if (pa[pa.length-1] === ra[ra.length-1]) s += 4;
+        }
+      }
+      if (p.year     && r.year     === p.year)     s += 5;
+      if (p.fuel     && r.fuel     === p.fuel)     s += 3;
+      if (p.accident && r.accident === p.accident) s += 3;
+      // 주행거리 근접도
+      if (p.km && r.km) {
+        var d = Math.abs(r.km - p.km) / Math.max(p.km, 1);
+        if      (d < 0.10) s += 5;
+        else if (d < 0.20) s += 3;
+        else if (d < 0.35) s += 1;
+      }
+      return { r: r, score: s };
+    })
+    .sort(function(a, b){ return b.score - a.score; });
+}
+
+function optNorm(s) { return s.toLowerCase().replace(/[\s\(\)\.\-]/g, ''); }
+
+function optVal(opt) {
+  var n = optNorm(opt);
+  for (var k in OPT_W) { if (optNorm(k) === n) return OPT_W[k]; }
+  return 0;
+}
+
+function colorVal(color) {
+  if (!color) return 0;
+  var c = color.toLowerCase();
+  for (var k in COLOR_W) { if (c.indexOf(k.toLowerCase()) !== -1) return COLOR_W[k]; }
+  return 0;
+}
+
+function calcPrediction(p, similar) {
+  var nowYear = new Date().getFullYear();
+  var totalW = 0, totalWP = 0, prices = [];
+  var factorDetail = [];
+
+  similar.forEach(function(x) {
+    var r = x.r;
+    var price = Number(r.highest);
+    var w = x.score;
+
+    // ① 주행거리 보정 (1만km 차이당 ±0.8%)
+    if (p.km && r.km) {
+      var kmDiff = Number(r.km) - Number(p.km);
+      price = price / (1 + (kmDiff / 10000) * 0.008);
+    }
+    // ② 오래된 이력 시세 보정 (연 3% 상승 가정)
+    if (r.date) {
+      var ago = nowYear - Number(r.date.slice(0, 4));
+      if (ago > 0) price *= Math.pow(1.03, ago);
+    }
+    // ③ 사고 유무 교차 보정
+    if (p.accident && r.accident && p.accident !== r.accident) {
+      price *= (p.accident === '사고') ? 0.92 : 1.08;
+    }
+    // ④ 내차 피해 보정 (건당 DMG_W.myDmg 만원)
+    var myDiff = (Number(p.myDmg) || 0) - (Number(r.myDmg) || 0);
+    price -= myDiff * DMG_W.myDmg;
+    // ⑤ 타차 가해 보정 (건당 DMG_W.othDmg 만원)
+    var othDiff = (Number(p.othDmg) || 0) - (Number(r.othDmg) || 0);
+    price -= othDiff * DMG_W.othDmg;
+    // ⑥ 옵션 가치 차이 보정
+    var pOpts = p.options || [], rOpts = r.options || [];
+    var optDelta = 0;
+    pOpts.forEach(function(o) {
+      if (!rOpts.some(function(o2){ return optNorm(o) === optNorm(o2); })) optDelta += optVal(o);
+    });
+    rOpts.forEach(function(o) {
+      if (!pOpts.some(function(o2){ return optNorm(o) === optNorm(o2); })) optDelta -= optVal(o);
+    });
+    price += optDelta;
+    // ⑦ 색상 보정
+    price += colorVal(p.color) - colorVal(r.color);
+    // ⑧ 경쟁자 수 보정 (1명당 ±0.3%)
+    if (p.participants && r.participants) {
+      price *= (1 + (Number(p.participants) - Number(r.participants)) * 0.003);
+    }
+
+    totalW  += w;
+    totalWP += price * w;
+    prices.push(Number(r.highest));
+  });
+
+  var predicted = Math.round(totalWP / totalW);
+  var avg = prices.reduce(function(a,b){ return a+b; }, 0) / prices.length;
+  var variance = prices.reduce(function(a,b){ return a + Math.pow(b-avg,2); }, 0) / prices.length;
+  var stdDev = Math.sqrt(variance);
+  var cv = avg > 0 ? stdDev / avg : 0;
+  var n  = similar.length;
+
+  // 신뢰도
+  var conf, confColor, confBg;
+  if      (n >= 8 && cv < 0.12) { conf='높음 ★★★'; confColor='#16a34a'; confBg='#f0fdf4'; }
+  else if (n >= 4 && cv < 0.22) { conf='보통 ★★☆'; confColor='#d97706'; confBg='#fffbeb'; }
+  else                          { conf='낮음 ★☆☆'; confColor='#dc2626'; confBg='#fef2f2'; }
+
+  var margin = Math.max(0.04, Math.min(0.18, cv));
+
+  // 누적 보정계수
+  var bias = getModelBias(p.brand, p.model);
+  var calibrated = Math.round(predicted * (1 + bias));
+
+  // 보정 요소 텍스트
+  var factors = [];
+  factors.push({ name:'참고 이력', val: n + '건 ('+conf.replace(/[★☆]/g,'').trim()+')' });
+  if (p.km)          factors.push({ name:'주행거리', val: Number(p.km).toLocaleString()+'km 기준 보정' });
+  if (p.accident)    factors.push({ name:'사고 유무', val: p.accident });
+  if (p.myDmg  > 0)  factors.push({ name:'내차 피해', val: p.myDmg+'건 → −'+(p.myDmg*DMG_W.myDmg)+'만원 반영' });
+  if (p.othDmg > 0)  factors.push({ name:'타차 가해', val: p.othDmg+'건 → −'+(p.othDmg*DMG_W.othDmg)+'만원 반영' });
+  if (p.options && p.options.length) {
+    var total = p.options.reduce(function(sum,o){ return sum + optVal(o); }, 0);
+    if (total) factors.push({ name:'옵션 합산', val: '+'+total+'만원 반영' });
+  }
+  if (p.color)  factors.push({ name:'색상', val: p.color+' ('+(colorVal(p.color)>=0?'+':'')+colorVal(p.color)+'만)' });
+  if (bias !== 0) factors.push({ name:'AI 자동 보정', val: (bias*100).toFixed(1)+'% (누적 오차 기반)' });
+
+  return {
+    calibrated: calibrated,
+    low:  Math.round(calibrated * (1 - margin)),
+    high: Math.round(calibrated * (1 + margin * 0.6)),
+    avg:  Math.round(avg), stdDev: Math.round(stdDev),
+    conf: conf, confColor: confColor, confBg: confBg,
+    n: n, bias: bias, factors: factors, similar: similar
+  };
+}
+
+function getModelBias(brand, model) {
+  var rel = auctions.filter(function(r){
+    return r.highest && r.aiPredicted && r.brand === brand && r.model === model;
+  });
+  if (rel.length < 3) return 0;
+  var errs = rel.map(function(r){ return (Number(r.highest)-Number(r.aiPredicted))/Number(r.highest); });
+  return Math.max(-0.15, Math.min(0.15, errs.reduce(function(a,b){return a+b;},0)/errs.length));
+}
+
+function renderPredCard(pred, p, similar) {
+  var html = '<div class="pred-box">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">'
+      + '<div style="font-size:13px;font-weight:800;color:#93c5fd">🤖 AI 낙찰가 예측 — '+p.brand+' '+p.model+(p.trim?' '+p.trim:'')+'</div>'
+      + '<div class="conf-badge" style="background:'+pred.confBg+';color:'+pred.confColor+'">신뢰도 '+pred.conf+'</div>'
+    + '</div>'
+    + '<div class="pred-main">'
+      + '<div style="font-size:11px;color:#93c5fd;margin-bottom:6px">예측 낙찰가</div>'
+      + '<div class="pred-price">'+fp(pred.calibrated)+'</div>'
+      + '<div class="pred-range">예측 범위 <span style="color:#e2e8f0;font-weight:700">'+fp(pred.low)+' ~ '+fp(pred.high)+'</span></div>'
+    + '</div>'
+    + '<div class="pred-grid">'
+      + '<div class="pred-cell"><div class="pred-cell-lbl">참고 이력</div><div class="pred-cell-val">'+pred.n+'건</div></div>'
+      + '<div class="pred-cell"><div class="pred-cell-lbl">과거 평균</div><div class="pred-cell-val">'+fp(pred.avg)+'</div></div>'
+      + '<div class="pred-cell"><div class="pred-cell-lbl">가격 편차</div><div class="pred-cell-val">±'+fp(pred.stdDev)+'</div></div>'
+    + '</div>';
+
+  // 보정 요소 상세
+  html += '<div style="border-top:1px solid rgba(255,255,255,.1);padding-top:12px">'
+    + '<div style="font-size:11px;color:#93c5fd;margin-bottom:8px">📐 적용된 보정 요소</div>';
+  pred.factors.forEach(function(f) {
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">'
+      + '<span style="color:#94a3b8">'+f.name+'</span>'
+      + '<span style="color:#e2e8f0;font-weight:600">'+f.val+'</span>'
+    + '</div>';
+  });
+  html += '</div></div>';
+
+  // 내 견적 입력 & 저장
+  var safeP = encodeURIComponent(JSON.stringify(p));
+  html += '<div class="card" style="border:1.5px solid #bfdbfe">'
+    + '<div class="card-title">📝 내 견적 & 결과 저장</div>'
+    + '<div class="g3" style="margin-bottom:10px">'
+      + '<div><span class="lbl">내 견적 (만원)</span><input class="inp" id="pred-mybid" type="number" value="'+(p.myBid||'')+'"></div>'
+      + '<div><span class="lbl">실제 낙찰가 (만원)</span><input class="inp" id="pred-actual" type="number" value="'+(p.highest||'')+'"></div>'
+      + '<div style="display:flex;align-items:flex-end">'
+        + '<button class="btn btn-green" style="width:100%;justify-content:center" id="save-pred-btn">💾 저장</button>'
+      + '</div>'
+    + '</div>'
+  + '</div>';
+
+  // 유사 이력
+  html += '<div class="card"><div class="card-title">📊 참고한 유사 이력 ('+Math.min(similar.length,6)+'건)</div>';
+  similar.slice(0, 6).forEach(function(x) {
+    var r = x.r;
+    var myD = r.myBid && r.highest ? Math.round(Number(r.myBid) - Number(r.highest)) : null;
+    html += '<div class="rec-card">'
+      + '<div class="rec-header">'
+        + '<div>'
+          + '<div class="rec-model">'+r.brand+' '+r.model+(r.trim?' · '+r.trim:'')+'</div>'
+          + '<div class="rec-sub">'+(r.year||'')+'년 · '+(r.km?Number(r.km).toLocaleString()+'km':'')+' · '+(r.fuel||'')+' · '+(r.accident||'')+'</div>'
+          + ((r.myDmg||0)+(r.othDmg||0)>0 ? '<div style="font-size:11px;color:#dc2626;margin-top:2px">내차피해 '+(r.myDmg||0)+'건 · 타차가해 '+(r.othDmg||0)+'건</div>' : '')
+        + '</div>'
+        + '<div class="chip '+(x.score>=18?'chip-blue':x.score>=13?'chip-green':'chip-gray')+'">유사도 '+x.score+'</div>'
+      + '</div>'
+      + '<div class="rec-prices">'
+        + '<div class="rp-item"><div class="rp-lbl">실제 낙찰가</div><div class="rp-val" style="color:#2563eb">'+fp(r.highest)+'</div></div>'
+        + (r.myBid ? '<div class="rp-item"><div class="rp-lbl">내 견적</div><div class="rp-val">'+fp(r.myBid)+'</div></div>' : '')
+        + (myD !== null ? '<div class="rp-item"><div class="rp-lbl">오차</div><div class="rp-val '+(myD>0?'diff-pos':'diff-neg')+'">'+(myD>0?'+':'')+myD+'만</div></div>' : '')
+        + (r.color ? '<div class="rp-item"><div class="rp-lbl">색상</div><div class="rp-val" style="font-size:12px">'+r.color+'</div></div>' : '')
+      + '</div>'
+      + (r.options&&r.options.length ? '<div style="margin-top:6px">'+r.options.map(function(o){return '<span class="opt-tag">'+o+'</span>';}).join('')+'</div>' : '')
+    + '</div>';
+  });
+  html += '</div>';
+
+  setTimeout(function() {
+    var btn = document.getElementById('save-pred-btn');
+    if (btn) btn.onclick = function() { savePredResult(p, pred.calibrated); };
+  }, 50);
+
+  return html;
+}
+
+function savePredResult(p, aiPredicted) {
+  var myBid  = Number(document.getElementById('pred-mybid').value)  || null;
+  var actual = Number(document.getElementById('pred-actual').value) || null;
+  var rec = Object.assign({}, p, {
+    myBid: myBid, highest: actual, aiPredicted: aiPredicted,
+    raw:   document.getElementById('pred-raw').value.trim(),
+    date:  new Date().toISOString().slice(0, 10)
+  });
+  if (!rec.brand || !rec.model) { showToast('모델 정보가 없습니다', 't-err'); return; }
+  fetch('/api/auctions', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(rec)
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ if (d.ok) { auctions.push(rec); showToast('저장! 데이터가 쌓일수록 정확해집니다 📈', 't-ok'); }});
+}
+
+// ── 이력 조회 ─────────────────────────────────────
+function renderHistory() {
+  var q = (document.getElementById('his-search').value || '').toLowerCase();
+  var data = auctions.slice().reverse();
+  if (q) data = data.filter(function(r){ return ((r.brand||'')+(r.model||'')+(r.trim||'')).toLowerCase().indexOf(q) !== -1; });
+  document.getElementById('his-count').textContent = auctions.length;
+  var list = document.getElementById('history-list');
+  if (!data.length) { list.innerHTML = '<div class="empty"><div style="font-size:36px">📭</div><div style="margin-top:10px;font-weight:600;color:#64748b">데이터 없음</div></div>'; return; }
+  var html = '';
+  data.forEach(function(r) {
+    var aiD = r.aiPredicted&&r.highest ? Math.round(Number(r.aiPredicted)-Number(r.highest)) : null;
+    var myD = r.myBid&&r.highest       ? Math.round(Number(r.myBid)-Number(r.highest))       : null;
+    html += '<div class="rec-card">'
+      + '<div class="rec-header">'
+        + '<div>'
+          + '<div class="rec-model">'+(r.brand||'')+' '+(r.model||'')+(r.trim?' · '+r.trim:'')+'</div>'
+          + '<div class="rec-sub">'+(r.year||'')+'년'+(r.km?' · '+Number(r.km).toLocaleString()+'km':'')+( r.fuel?' · '+r.fuel:'')+(r.accident?' · '+r.accident:'')+(r.color?' · '+r.color:'')+'</div>'
+          + ((r.myDmg||0)+(r.othDmg||0)>0 ? '<div style="font-size:11px;color:#dc2626;margin-top:2px">⚠️ 내차피해 '+(r.myDmg||0)+'건 · 타차가해 '+(r.othDmg||0)+'건</div>' : '')
+        + '</div>'
+        + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+          + (r.won==='win' ? '<div class="chip chip-green">낙찰성공</div>' : r.won==='lose' ? '<div class="chip chip-red">낙찰실패</div>' : '')
+          + '<button class="btn btn-red btn-sm" onclick="delAuction(\''+r.id+'\')">삭제</button>'
+        + '</div>'
+      + '</div>'
+      + '<div class="rec-prices">'
+        + (r.highest ? '<div class="rp-item"><div class="rp-lbl">실제 낙찰가</div><div class="rp-val" style="color:#2563eb">'+fp(r.highest)+'</div></div>' : '<span class="chip chip-yellow">낙찰가 미입력</span>')
+        + (r.myBid     ? '<div class="rp-item"><div class="rp-lbl">내 견적</div><div class="rp-val">'+fp(r.myBid)+'</div></div>'                                                                : '')
+        + (r.aiPredicted ? '<div class="rp-item"><div class="rp-lbl">AI 예측</div><div class="rp-val" style="color:#7c3aed">'+fp(r.aiPredicted)+'</div></div>'                               : '')
+        + (myD!==null ? '<div class="rp-item"><div class="rp-lbl">내 오차</div><div class="rp-val '+(myD>0?'diff-pos':'diff-neg')+'">'+(myD>0?'+':'')+myD+'만</div></div>'                  : '')
+        + (aiD!==null ? '<div class="rp-item"><div class="rp-lbl">AI 오차</div><div class="rp-val '+(aiD>0?'diff-pos':'diff-neg')+'">'+(aiD>0?'+':'')+aiD+'만</div></div>'                  : '')
+        + (r.participants ? '<div class="rp-item"><div class="rp-lbl">경쟁자</div><div class="rp-val">'+r.participants+'명</div></div>'                                                         : '')
+        + '<div class="rp-item"><div class="rp-lbl">날짜</div><div class="rp-val" style="font-size:12px;color:#64748b">'+(r.date||'')+'</div></div>'
+      + '</div>'
+      + (r.options&&r.options.length ? '<div style="margin-top:8px">'+r.options.map(function(o){return '<span class="opt-tag">'+o+'</span>';}).join('')+'</div>' : '')
+    + '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function delAuction(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  fetch('/api/auctions/'+id, {method:'DELETE'}).then(function(r){return r.json();})
+    .then(function(){ auctions = auctions.filter(function(r){return r.id!==id;}); renderHistory(); showToast('삭제됨','t-ok'); });
+}
+
+// ── 정확도 분석 ───────────────────────────────────
+function renderStats() {
+  var el = document.getElementById('stats-content');
+  var withR  = auctions.filter(function(r){ return r.highest; });
+  var withMy = withR.filter(function(r){ return r.myBid; });
+  var withAI = withR.filter(function(r){ return r.aiPredicted; });
+  if (!withR.length) {
+    el.innerHTML = '<div class="empty"><div style="font-size:36px">📊</div><div style="margin-top:10px;font-weight:600;color:#64748b">낙찰가 입력된 데이터가 없습니다</div></div>';
+    return;
+  }
+  function mape(recs, fn) {
+    return recs.map(function(r){ return Math.abs(fn(r)-Number(r.highest))/Number(r.highest)*100; })
+               .reduce(function(a,b){return a+b;},0)/recs.length;
+  }
+  var myMAE = withMy.length ? mape(withMy, function(r){return Number(r.myBid);})      : null;
+  var aiMAE = withAI.length ? mape(withAI, function(r){return Number(r.aiPredicted);}) : null;
+
+  var html = '<div class="stat-box">'
+    + '<div style="font-size:14px;font-weight:800;color:#fff">📊 전체 예측 정확도</div>'
+    + '<div style="font-size:12px;color:#6ee7b7;margin-top:4px">낙찰가 입력된 '+withR.length+'건 기준</div>'
+    + '<div class="stat-grid">'
+      + '<div class="stat-cell"><div class="stat-lbl">전체 데이터</div><div class="stat-val">'+auctions.length+'</div><div class="stat-sub">건</div></div>'
+      + '<div class="stat-cell"><div class="stat-lbl">결과 확인됨</div><div class="stat-val">'+withR.length+'</div><div class="stat-sub">건</div></div>'
+      + '<div class="stat-cell"><div class="stat-lbl">내 예측 오차</div><div class="stat-val">'+(myMAE!==null?myMAE.toFixed(1)+'%':'-')+'</div><div class="stat-sub">'+withMy.length+'건</div></div>'
+      + '<div class="stat-cell"><div class="stat-lbl">AI 예측 오차</div><div class="stat-val">'+(aiMAE!==null?aiMAE.toFixed(1)+'%':'-')+'</div><div class="stat-sub">'+withAI.length+'건</div></div>'
+    + '</div>'
+  + '</div>';
+
+  // 모델별
+  var mmap = {};
+  withR.forEach(function(r){
+    var k = (r.brand||'')+' '+(r.model||'');
+    if (!mmap[k]) mmap[k] = { brand:r.brand, model:r.model, recs:[] };
+    mmap[k].recs.push(r);
+  });
+  var mlist = Object.values(mmap).sort(function(a,b){return b.recs.length-a.recs.length;});
+  if (mlist.length) {
+    html += '<div class="card"><div class="card-title">🚗 모델별 통계</div>';
+    mlist.forEach(function(m) {
+      var prices = m.recs.map(function(r){return Number(r.highest);});
+      var avg = prices.reduce(function(a,b){return a+b;},0)/prices.length;
+      var srt = prices.slice().sort(function(a,b){return a-b;});
+      var myR = m.recs.filter(function(r){return r.myBid;}), aiR = m.recs.filter(function(r){return r.aiPredicted;});
+      var myE = myR.length ? mape(myR, function(r){return Number(r.myBid);})      : null;
+      var aiE = aiR.length ? mape(aiR, function(r){return Number(r.aiPredicted);}) : null;
+      var bias = getModelBias(m.brand, m.model);
+      html += '<div class="factor-row">'
+        + '<div>'
+          + '<div style="font-weight:700;font-size:13px">'+(m.brand||'')+' '+(m.model||'')+'</div>'
+          + '<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+m.recs.length+'건 · 평균 '+fp(Math.round(avg))+' · '+fp(srt[0])+' ~ '+fp(srt[srt.length-1])+'</div>'
+        + '</div>'
+        + '<div style="text-align:right">'
+          + (myE!==null ? '<div class="chip chip-gray">내 ±'+myE.toFixed(1)+'%</div>' : '')
+          + (aiE!==null ? '<div class="chip chip-purple">AI ±'+aiE.toFixed(1)+'%</div>' : '')
+          + (bias!==0   ? '<div class="chip '+(bias<0?'chip-green':'chip-orange')+'">보정 '+(bias*100).toFixed(1)+'%</div>' : '')
+        + '</div>'
+      + '</div>';
+    });
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// ── 가중치 설정 탭 ────────────────────────────────
+function renderWeights() {
+  // 옵션
+  var el = document.getElementById('opt-weight-list');
+  var html = '';
+  Object.keys(OPT_W).forEach(function(k) {
+    html += '<div class="factor-row">'
+      + '<span style="color:#374151">'+k+'</span>'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+        + '<input type="number" value="'+OPT_W[k]+'" '
+          + 'style="width:80px;padding:5px 8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;text-align:right" '
+          + 'onchange="OPT_W[\''+k.replace(/'/g,"\\'")+'\']=Number(this.value)">'
+        + '<span style="font-size:12px;color:#94a3b8;width:24px">만원</span>'
+        + '<button class="btn btn-red btn-sm" onclick="delOpt(\''+k.replace(/'/g,"\\'")+'\')" style="padding:4px 8px">✕</button>'
+      + '</div>'
+    + '</div>';
+  });
+  el.innerHTML = html || '<div style="color:#94a3b8;font-size:13px">옵션 없음</div>';
+
+  // 색상
+  var cel = document.getElementById('color-weight-list');
+  var chtml = '';
+  Object.keys(COLOR_W).forEach(function(k) {
+    chtml += '<div class="factor-row">'
+      + '<span style="color:#374151">'+k+'</span>'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+        + '<input type="number" value="'+COLOR_W[k]+'" '
+          + 'style="width:80px;padding:5px 8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:700;text-align:right" '
+          + 'onchange="COLOR_W[\''+k+'\']=Number(this.value)">'
+        + '<span style="font-size:12px;color:#94a3b8">만원</span>'
+      + '</div>'
+    + '</div>';
+  });
+  cel.innerHTML = chtml;
+
+  document.getElementById('w-mydmg').value  = DMG_W.myDmg;
+  document.getElementById('w-othdmg').value = DMG_W.othDmg;
+}
+
+function addOpt() {
+  var name = document.getElementById('new-opt-name').value.trim();
+  var val  = Number(document.getElementById('new-opt-val').value) || 0;
+  if (!name) { showToast('옵션명을 입력하세요', 't-err'); return; }
+  OPT_W[name] = val;
+  document.getElementById('new-opt-name').value = '';
+  document.getElementById('new-opt-val').value  = '';
+  renderWeights();
+  showToast(name + ' 추가됨', 't-ok');
+}
+function delOpt(k) {
+  if (!confirm(k + ' 삭제?')) return;
+  delete OPT_W[k];
+  renderWeights();
+}
+function saveDmgWeights() {
+  DMG_W.myDmg  = Number(document.getElementById('w-mydmg').value)  || 30;
+  DMG_W.othDmg = Number(document.getElementById('w-othdmg').value) || 15;
+  showToast('피해 감가율 저장됨', 't-ok');
+}
+
+// ── 초기화 ────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() { loadData(); });
+</script>
+</body>
+</html>
