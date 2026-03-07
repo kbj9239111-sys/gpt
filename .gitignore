@@ -8,3 +8,4 @@ venv/
 _trash/
 *.bak
 *.bak_*
+*.db
