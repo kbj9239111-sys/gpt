@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.log
+logs/
+.venv/
+venv/
+.env
+_trash/
+*.bak
+*.bak_*

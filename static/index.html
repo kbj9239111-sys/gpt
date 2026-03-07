@@ -1,0 +1,693 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>빠른 판매가 분석</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #fff;
+      --ink: #152534;
+      --muted: #5e7287;
+      --line: #dbe3ea;
+      --accent: #0f766e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 10% 0%, #def3ef 0, transparent 28%), var(--bg);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(10, 30, 50, .06);
+      margin-bottom: 12px;
+    }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    h2 { margin: 0 0 8px; font-size: 17px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    textarea {
+      width: 100%;
+      min-height: 240px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 14px;
+      resize: vertical;
+    }
+    .btns { display: flex; gap: 8px; margin-top: 10px; }
+    .row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin: 8px 0; }
+    .row .field { display: flex; flex-direction: column; gap: 4px; }
+    .row label { font-size: 12px; color: var(--muted); }
+    input, select {
+      width: 100%;
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 13px;
+      background: #fff;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #e7eef5;
+      color: #102233;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fafcfe;
+    }
+    .kpi .t { color: var(--muted); font-size: 12px; }
+    .kpi .v { font-size: 22px; font-weight: 800; margin-top: 4px; }
+    .pill { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #e9f7f4; color: #0f766e; font-size: 12px; margin: 3px 4px 0 0; }
+    .pill.missing { background: #f2f4f7; color: #6b7280; text-decoration: line-through; }
+    .kvgrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-top: 10px; }
+    .kv {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fafcfe;
+    }
+    .kv h3 { margin: 0 0 8px; font-size: 14px; }
+    .kv dl { margin: 0; display: grid; grid-template-columns: 110px 1fr; row-gap: 4px; column-gap: 8px; font-size: 13px; }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 7px; text-align: left; }
+    th { color: var(--muted); font-size: 12px; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable.active { color: var(--accent); font-weight: 700; }
+    .calc-dock {
+      position: fixed;
+      right: 14px;
+      top: 14px;
+      width: 320px;
+      z-index: 20;
+    }
+    .calc-dock .card { margin-bottom: 10px; }
+    .calc-dock .card:last-child { margin-bottom: 0; }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .calc-grid .field { display: flex; flex-direction: column; gap: 4px; }
+    .calc-result { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fafcfe; font-size: 13px; line-height: 1.5; }
+    .calc-result b { font-size: 16px; }
+    .review-links { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .review-links a { font-size: 13px; text-decoration: none; color: var(--accent); border: 1px solid #cce3df; background: #eef8f6; border-radius: 999px; padding: 4px 10px; }
+    .review-links a:hover { background: #dff2ee; }
+    body.with-calc .wrap { margin-right: 348px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 1280px) {
+      .calc-dock { position: static; width: auto; margin: 0 20px 12px; }
+      body.with-calc .wrap { margin-right: auto; }
+    }
+  </style>
+</head>
+<body>
+<div class="calc-dock">
+  <div class="card">
+    <h2>입찰 계산기</h2>
+    <div class="calc-grid">
+      <div class="field"><label>플랫폼</label><select id="cPlatform"><option value="autoinside">오토인사이드</option><option value="dealer">헤이딜러</option></select></div>
+      <div class="field"><label>광고비</label><select id="cAd"><option value="11">11만원</option><option value="14">14만원</option></select></div>
+      <div class="field"><label>판매가(만원)</label><input id="cSale" type="number" step="0.01" /></div>
+      <div class="field"><label>상품화비(만원)</label><input id="cRepair" type="number" step="0.01" value="0" /></div>
+      <div class="field"><label>마진(만원)</label><input id="cMargin" type="number" step="0.01" value="0" /></div>
+    </div>
+    <div class="btns">
+      <button class="primary" id="btnCalcBid">계산</button>
+      <button id="btnCalcClear">초기화</button>
+    </div>
+    <div class="calc-result" id="calcResult">판매가를 입력해 계산하세요.</div>
+  </div>
+  <div class="card">
+    <h2>실무판매가 계산기</h2>
+    <div class="calc-grid">
+      <div class="field"><label>실무 플랫폼</label><select id="pPlatform"><option value="autoinside">오토인사이드</option><option value="dealer">헤이딜러</option></select></div>
+      <div class="field"><label>광고비</label><select id="pAd"><option value="11">11만원</option><option value="14">14만원</option></select></div>
+      <div class="field"><label>예상 판매가(만원)</label><input id="pSale" type="number" step="0.01" /></div>
+      <div class="field"><label>상품화비(만원)</label><input id="pRepair" type="number" step="0.01" value="0" /></div>
+      <div class="field"><label>목표마진(만원)</label><input id="pMargin" type="number" step="0.01" value="100" /></div>
+    </div>
+    <div class="btns">
+      <button class="primary" id="btnPracticalCalc">계산 후 반영</button>
+      <button id="btnPracticalClear">초기화</button>
+    </div>
+    <div class="calc-result" id="practicalCalcResult">예상 판매가를 입력하면 추천 입찰가를 즉시 반영합니다.</div>
+  </div>
+</div>
+<div class="wrap">
+  <div class="card">
+    <h1>빠른 판매가 분석</h1>
+    <div class="muted">차량 정보 원문을 붙여넣으면 자동 추출 후 엔카 유사매물 시세를 조회해 예상 판매가를 빠르게 보여줍니다.</div>
+  </div>
+
+  <div class="card">
+    <h2>원문 입력</h2>
+    <div class="row">
+      <div class="field">
+        <label for="useSourceProfiles">소스별 파싱</label>
+        <select id="useSourceProfiles">
+          <option value="1">사용</option>
+          <option value="0">끄기(롤백)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="sourceSite">소스 사이트</label>
+        <select id="sourceSite">
+          <option value="heydealer">헤이딜러</option>
+          <option value="autoinside">오토인사이드</option>
+          <option value="carauction">카옥션</option>
+          <option value="gulliver">걸리버옥션</option>
+          <option value="generic">일반/기타</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="modelOverride">모델명 보정(선택)</label>
+        <input id="modelOverride" placeholder="예: 올 뉴 아반떼 (CN7)" />
+      </div>
+      <div class="field">
+        <label for="trimOverride">트림 보정(선택)</label>
+        <input id="trimOverride" placeholder="예: 1.6 가솔린 모던" />
+      </div>
+    </div>
+    <div id="sourceProfileHint" class="muted"></div>
+    <div class="row">
+      <div class="field">
+        <label for="practicalSale">실무 판매가(만원)</label>
+        <input id="practicalSale" type="number" placeholder="비우면 자동판매가 사용" />
+      </div>
+      <div class="field">
+        <label for="practicalRepair">상품화비(만원)</label>
+        <input id="practicalRepair" type="number" value="0" />
+      </div>
+      <div class="field">
+        <label for="practicalAd">광고비(만원)</label>
+        <select id="practicalAd">
+          <option value="11">11</option>
+          <option value="14">14</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="practicalMargin">목표마진(만원)</label>
+        <input id="practicalMargin" type="number" value="100" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="practicalPlatform">실무 플랫폼</label>
+        <select id="practicalPlatform">
+          <option value="autoinside">오토인사이드</option>
+          <option value="dealer">헤이딜러</option>
+        </select>
+      </div>
+    </div>
+    <textarea id="rawText" placeholder="차량 정보 원문을 그대로 붙여넣으세요"></textarea>
+    <div class="btns">
+      <button class="primary" id="btnAnalyze">분석 실행</button>
+      <button id="btnClear">초기화</button>
+    </div>
+    <div id="msg" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <h2>결과</h2>
+    <div class="grid">
+      <div class="kpi"><div class="t">예상 판매가</div><div class="v" id="kSale">-</div></div>
+      <div class="kpi"><div class="t">추천 입찰가</div><div class="v" id="kBid">-</div></div>
+      <div class="kpi"><div class="t">예상 이익</div><div class="v" id="kProfit">-</div></div>
+      <div class="kpi"><div class="t">엔카 중앙가</div><div class="v" id="kMedian">-</div></div>
+      <div class="kpi"><div class="t">엔카 표본</div><div class="v" id="kCount">-</div></div>
+      <div class="kpi"><div class="t">입찰 근거</div><div class="v" id="kBidStats" style="font-size:13px;line-height:1.45">-</div></div>
+      <div class="kpi"><div class="t">조회근거</div><div class="v" id="kDebug" style="font-size:13px;line-height:1.45;white-space:pre-line">-</div></div>
+    </div>
+
+    <div style="margin-top:10px">
+      <div class="muted">추출된 옵션(신차 추가옵션 섹션 기준)</div>
+      <div id="opts"></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="muted">추출 정보 검토</div>
+      <div class="kvgrid">
+        <div class="kv">
+          <h3>차량 기본</h3>
+          <dl id="pCar"></dl>
+        </div>
+        <div class="kv">
+          <h3>제원/가격</h3>
+          <dl id="pSpec"></dl>
+        </div>
+        <div class="kv">
+          <h3>사고/상태</h3>
+          <dl id="pCond"></dl>
+        </div>
+        <div class="kv">
+          <h3>입찰 계산 근거</h3>
+          <dl id="pBid"></dl>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="muted">직접 조회 링크(키로수 확장)</div>
+      <div id="reviewLinks" class="review-links"><span class="muted">조회 링크 없음</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>최근 분석</h2>
+    <table>
+      <thead><tr><th>ID</th><th>소스</th><th>차량</th><th>주행거리</th><th>예상판매가</th><th>분석시각</th></tr></thead>
+      <tbody id="recent"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let appConfig = {
+  enable_source_profiles: true,
+  can_disable_per_request: true,
+  parser_profile_version: '-',
+};
+let currentReviewLinks = [];
+
+function num(v) { return (v === null || v === undefined) ? "-" : String(v); }
+function yesno(v) {
+  if (v === true) return '예';
+  if (v === false) return '아니오';
+  return '-';
+}
+function money(v) {
+  return (v === null || v === undefined) ? '-' : `${v}만원`;
+}
+function yn(v) {
+  if (v === true) return '있음';
+  if (v === false) return '없음';
+  return '-';
+}
+
+function toNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function solveBidPrice(sale, repair, ad, margin, platform) {
+  const fixed = 22;
+  const k = fixed + repair + ad + margin;
+  let bid = 0;
+  let commission = 0;
+
+  if (platform === 'autoinside') {
+    const candidate = (sale - k) / 1.044;
+    if (candidate < 500) {
+      commission = 11;
+      bid = (sale - (k + commission)) / 1.022;
+    } else if (candidate > 2000) {
+      commission = 44;
+      bid = (sale - (k + commission)) / 1.022;
+    } else {
+      bid = candidate;
+      commission = bid * 0.022;
+    }
+  } else {
+    const tiers = [
+      { fee: 14, max: 100 },
+      { fee: 30, max: 500 },
+      { fee: 36, max: 1500 },
+      { fee: 39, max: 3000 },
+      { fee: 47, max: 4000 },
+      { fee: 50, max: Infinity },
+    ];
+    for (const t of tiers) {
+      const cand = (sale - (k + t.fee)) / 1.022;
+      if (cand <= t.max) {
+        bid = cand;
+        commission = t.fee;
+        break;
+      }
+    }
+  }
+
+  const buying = bid * 0.022;
+  const total = commission + 10 + 12 + buying + repair + ad + margin;
+  return { bid, commission, buying, total };
+}
+
+function runQuickCalc() {
+  const sale = toNum($('cSale').value);
+  const repair = toNum($('cRepair').value);
+  const ad = toNum($('cAd').value);
+  const margin = toNum($('cMargin').value);
+  const platform = $('cPlatform').value;
+  if (!sale) {
+    $('calcResult').textContent = '판매가를 입력하세요.';
+    return;
+  }
+  const out = solveBidPrice(sale, repair, ad, margin, platform);
+  $('calcResult').innerHTML = `
+    추천 입찰가: <b>${out.bid.toFixed(2)}만원</b><br/>
+    수수료: ${out.commission.toFixed(2)}만원 / 매입비: ${out.buying.toFixed(2)}만원<br/>
+    총 차감: ${out.total.toFixed(2)}만원
+  `;
+}
+
+function runPracticalDockCalc() {
+  const sale = toNum($('pSale').value);
+  const repair = toNum($('pRepair').value);
+  const ad = toNum($('pAd').value);
+  const margin = toNum($('pMargin').value);
+  const platform = $('pPlatform').value;
+  if (!sale) {
+    $('practicalCalcResult').textContent = '예상 판매가를 입력하세요.';
+    return;
+  }
+  const out = solveBidPrice(sale, repair, ad, margin, platform);
+  const profit = sale - out.bid - (out.commission + out.buying + 10 + 12 + repair + ad);
+
+  $('practicalSale').value = String(sale);
+  $('practicalRepair').value = String(repair);
+  $('practicalAd').value = String(ad);
+  $('practicalMargin').value = String(margin);
+  $('practicalPlatform').value = platform;
+
+  $('kSale').textContent = String(Math.round(sale));
+  $('kBid').textContent = String(Math.round(out.bid));
+  $('kProfit').textContent = String(Math.round(profit));
+  $('kBidStats').textContent = `실무 프리뷰 platform:${platform} 수수료:${out.commission.toFixed(1)} 매입비:${out.buying.toFixed(1)} 총차감:${out.total.toFixed(1)} 마진목표:${margin}`;
+  $('msg').textContent = '실무판매가 계산값을 반영했습니다. 분석 실행 시 비교군 기반 결과로 다시 계산됩니다.';
+
+  $('practicalCalcResult').innerHTML = `
+    추천 입찰가: <b>${out.bid.toFixed(2)}만원</b><br/>
+    예상 이익: ${profit.toFixed(2)}만원 / 총 차감: ${out.total.toFixed(2)}만원
+  `;
+}
+
+function normalizeOptionKey(v) {
+  const romanMap = {
+    'Ⅰ': '1', 'Ⅱ': '2', 'Ⅲ': '3', 'Ⅳ': '4', 'Ⅴ': '5',
+    'Ⅵ': '6', 'Ⅶ': '7', 'Ⅷ': '8', 'Ⅸ': '9', 'Ⅹ': '10',
+    'ⅰ': '1', 'ⅱ': '2', 'ⅲ': '3', 'ⅳ': '4', 'ⅴ': '5',
+    'ⅵ': '6', 'ⅶ': '7', 'ⅷ': '8', 'ⅸ': '9', 'ⅹ': '10',
+  };
+  const src = String(v ?? '').replace(/\uFEFF/g, '').trim();
+  if (!src) return '';
+  const normalized = src
+    .replace(/[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹ]/g, (ch) => romanMap[ch] || ch)
+    .replace(/^\d+\)\s*/g, '')
+    .replace(/\([\d,\s]*만원[^)]*\)/g, ' ')
+    .replace(/\(\s*기본형[^)]*\)/g, ' ')
+    .replace(/\(\s*선택[^)]*\)/g, ' ')
+    .toLowerCase()
+    .replace(/[^0-9a-z가-힣]+/g, '');
+  return normalized.trim();
+}
+
+function dedupeOptionNames(list, excludeKeys) {
+  const out = [];
+  const seen = new Set(excludeKeys || []);
+  for (const it of (list || [])) {
+    const name = String(it ?? '').trim();
+    if (!name) continue;
+    const key = normalizeOptionKey(name) || name.replace(/\s+/g, '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+  }
+  return out;
+}
+
+function renderReviewLinks() {
+  const links = currentReviewLinks.filter(it => !!it?.url);
+  $('reviewLinks').innerHTML = links.length
+    ? links.map(it => `<a href="${it.url}" target="_blank" rel="noopener">${it.label}</a>`).join('')
+    : '<span class="muted">조회 링크 없음</span>';
+}
+
+function applySourceProfileUiState() {
+  const envEnabled = !!appConfig.enable_source_profiles;
+  if (!envEnabled) $('useSourceProfiles').value = '0';
+  $('useSourceProfiles').disabled = !envEnabled || !appConfig.can_disable_per_request;
+
+  const useProfiles = envEnabled && ($('useSourceProfiles').value === '1');
+  $('sourceSite').disabled = !useProfiles;
+  $('modelOverride').disabled = !useProfiles;
+  $('trimOverride').disabled = !useProfiles;
+
+  if (!envEnabled) {
+    $('sourceProfileHint').textContent = `소스별 파싱 비활성(서버 롤백): profile=${appConfig.parser_profile_version || '-'}`;
+  } else if (!useProfiles) {
+    $('sourceProfileHint').textContent = '요청 단위 롤백 모드: 이번 분석은 기존(generic) 파서로 실행됩니다.';
+  } else {
+    $('sourceProfileHint').textContent = `소스별 파싱 사용 중: profile=${appConfig.parser_profile_version || '-'}`;
+  }
+}
+
+async function loadConfig() {
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) throw new Error(`config http ${res.status}`);
+    const cfg = await res.json();
+    appConfig = {
+      enable_source_profiles: !!cfg.enable_source_profiles,
+      can_disable_per_request: cfg.can_disable_per_request !== false,
+      parser_profile_version: cfg.parser_profile_version || '-',
+    };
+  } catch (e) {
+    appConfig = {
+      enable_source_profiles: true,
+      can_disable_per_request: true,
+      parser_profile_version: '-',
+    };
+  }
+  applySourceProfileUiState();
+}
+
+async function loadRecent() {
+  const res = await fetch('/api/recent');
+  const data = await res.json();
+  const rows = (data.items || []).map(r =>
+    `<tr><td>${r.id}</td><td>${r.source_site || '-'}</td><td>${r.brand || ''} ${r.model || ''} ${r.trim || ''}</td><td>${r.mileage_km ?? '-'}</td><td>${r.estimated_sale_price ?? '-'}</td><td>${r.created_at || ''}</td></tr>`
+  ).join('');
+  $('recent').innerHTML = rows;
+}
+
+async function analyze() {
+  const raw_text = $('rawText').value.trim();
+  if (!raw_text) { $('msg').textContent = '원문을 입력하세요.'; return; }
+  const use_source_profiles = $('useSourceProfiles').value === '1';
+  const source_site = $('sourceSite').value || 'generic';
+  const model_override = $('modelOverride').value.trim();
+  const trim_override = $('trimOverride').value.trim();
+  const practical = {
+    sale_price: $('practicalSale').value.trim(),
+    repair_cost: $('practicalRepair').value.trim(),
+    ad_cost: $('practicalAd').value.trim(),
+    margin_target: $('practicalMargin').value.trim(),
+    platform: $('practicalPlatform').value || 'autoinside',
+  };
+
+  $('msg').textContent = '분석 중...';
+  currentReviewLinks = [];
+  renderReviewLinks();
+  const res = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw_text, source_site, model_override, trim_override, use_source_profiles, practical })
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    $('msg').textContent = data.error || '분석 실패';
+    return;
+  }
+
+  const m = data.market || {};
+  const ob = data.optimal_bid || {};
+  const pc = data.practical_calc || {};
+  const usePractical = (pc.bid_price !== null && pc.bid_price !== undefined);
+  const p = data.parsed || {};
+  $('kSale').textContent = num(usePractical ? pc.sale_price : data.estimated_sale_price);
+  $('kBid').textContent = num(usePractical ? pc.bid_price : ob.recommended_bid_price);
+  $('kProfit').textContent = num(usePractical ? pc.expected_profit : ob.expected_profit);
+  $('kMedian').textContent = num(m.median);
+  $('kCount').textContent = num(m.count);
+
+  const dbg = m.debug || {};
+  const kmWindow = Array.isArray(dbg.km_window) ? dbg.km_window : [null, null];
+  const kmWindowText = (kmWindow[0] != null && kmWindow[1] != null) ? `${kmWindow[0]}~${kmWindow[1]}km` : '-';
+  const targetOptCodes = Array.isArray(dbg.target_option_codes) ? dbg.target_option_codes : [];
+  const targetOptNames = Array.isArray(dbg.target_option_names) ? dbg.target_option_names : [];
+  const targetOptUnmatched = Array.isArray(dbg.target_option_unmatched) ? dbg.target_option_unmatched : [];
+  const optionScopeItems = Array.isArray(dbg.target_option_scope_items) ? dbg.target_option_scope_items : [];
+  const optionScopeTotal = (dbg.option_scope_total_count ?? optionScopeItems.length ?? 0);
+  const optionScopeSelected = (dbg.target_option_scope_selected_count ?? optionScopeItems.filter(it => !!it?.selected).length ?? 0);
+  const debugLines = [
+    `파서: source=${data.source_site || p.source_site || '-'} / profile=${data.parser_profile_version || '-'} / env=${data.enable_source_profiles ? 'Y' : 'N'} / req=${data.use_source_profiles ? 'Y' : 'N'}`,
+    `기준: ${p.brand || '-'} / ${p.model || '-'} / ${p.trim || '-'}`,
+    `필터: 연식=${p.registration_year ?? '-'} 고정, 주행앵커=${dbg.km_anchor ?? '-'}km, 범위=${kmWindowText}, 연료=${p.fuel || '-'}`,
+    `수집: raw=${dbg.raw_count ?? '-'} → strict=${dbg.strict_count ?? '-'} → dedup=${dbg.dedup_vehicle_count ?? '-'} / pages=${dbg.scanned_pages ?? '-'} / calls=${dbg.api_calls ?? '-'}`,
+    `정밀수집: enabled=${dbg.detailed_fetch_enabled ? 'Y' : 'N'} / scanned=${dbg.detailed_fetch_rows ?? '-'} / early_stop=${dbg.detailed_fetch_early_stop ? 'Y' : 'N'}`,
+    `트림매칭: exact=${dbg.trim_exact_count ?? '-'} / similar_pool=${dbg.trim_similar_pool_count ?? '-'} / mode=${dbg.trim_fill_mode || '-'}`,
+    `직접쿼리키: anchor=${dbg.anchor_badge || '-'} / badgeGroup=${(dbg.badge_group_candidates || []).join(', ') || '-'} / inferred=${(dbg.inferred_badge_groups || []).join(', ') || '-'}`,
+    `옵션구성: 입력차량 ${optionScopeSelected}/${optionScopeTotal} / mode=${dbg.option_scope_mode || '-'} / target_code=${targetOptCodes.length} / target_name=${targetOptNames.join(', ') || '-'} / unmatched=${targetOptUnmatched.join(', ') || '-'} / catalog=${dbg.option_catalog_count ?? '-'} (cache=${dbg.option_catalog_cached_count ?? '-'} / saved=${dbg.option_catalog_saved_count ?? '-'} / source=${dbg.option_catalog_learn_source || '-'})`,
+    `직접쿼리: applied=${dbg.direct_applied ? 'Y' : 'N'} / cand=${dbg.direct_candidate_count ?? '-'} / pages=${dbg.direct_scanned_pages ?? '-'} / last_err=${dbg.last_fetch_error || '-'} / review_maker=${dbg.review_selected_maker || '-'} / review_group=${dbg.review_model_group_name || '-'} / review_badge=${dbg.review_drive_badge_text || '-'} / review_fuel=${dbg.review_fuel_key || '-'} / review_km_hi=${dbg.review_km_hi ?? '-'} / url=${dbg.review_web_url || dbg.direct_web_url || '-'}`,
+    `버전: ${dbg.logic_version ?? '-'}${dbg.fetch_errors ? ` / fetch_err=${dbg.fetch_errors}` : ''}${dbg.reason ? ` / 사유=${dbg.reason}` : ''}`,
+  ];
+  $('kDebug').textContent = debugLines.join('\n');
+  const bs = ob.stats || {};
+  if (usePractical) {
+    $('kBidStats').textContent = `실무계산 source:${pc.source || '-'} platform:${pc.platform || '-'} 수수료:${pc.commission ?? '-'} 매입비:${pc.buying_cost ?? '-'} 총차감:${pc.total_deductions ?? '-'} 마진목표:${pc.margin_target ?? '-'}`;
+  } else {
+    $('kBidStats').textContent = `db표본:${bs.comp_count ?? '-'} p50:${bs.p50 ?? '-'} p75:${bs.p75 ?? '-'} p90:${bs.p90 ?? '-'} 경쟁가산:${bs.competition_premium ?? '-'} 리스크:${ob.risk_buffer ?? '-'}${ob.reason ? ` 사유:${ob.reason}` : ''}`;
+  }
+
+  const options = (data.parsed?.options || []);
+  if (optionScopeItems.length) {
+    const dedupScopeItems = [];
+    const scopeKeySet = new Set();
+    for (const it of optionScopeItems) {
+      const name = String(it?.name || '').trim();
+      if (!name) continue;
+      const key = normalizeOptionKey(name) || name.replace(/\s+/g, '');
+      if (scopeKeySet.has(key)) continue;
+      scopeKeySet.add(key);
+      dedupScopeItems.push(it);
+    }
+    const optionPills = dedupScopeItems.map(it => `<span class="pill ${it.selected ? '' : 'missing'}">${it.name || '-'}</span>`);
+    const dedupUnmatched = dedupeOptionNames(targetOptUnmatched, scopeKeySet);
+    const unmatchedPills = dedupUnmatched.map(nm => `<span class="pill">${nm}</span>`);
+    $('opts').innerHTML = [...optionPills, ...unmatchedPills].join('');
+  } else {
+    const dedupOptions = dedupeOptionNames(options);
+    $('opts').innerHTML = dedupOptions.length ? dedupOptions.map(o => `<span class="pill">${o}</span>`).join('') : '<span class="muted">저장된 신차 추가옵션 없음</span>';
+  }
+  $('pCar').innerHTML = `
+    <dt>브랜드</dt><dd>${p.brand || '-'}</dd>
+    <dt>모델</dt><dd>${p.model || '-'}</dd>
+    <dt>트림</dt><dd>${p.trim || '-'}</dd>
+    <dt>연식/월</dt><dd>${p.registration_year ?? '-'}년 ${p.registration_month ?? '-'}월</dd>
+  `;
+  $('pSpec').innerHTML = `
+    <dt>연료/변속</dt><dd>${p.fuel || '-'} / ${p.transmission || '-'}</dd>
+    <dt>주행거리</dt><dd>${num(p.mileage_km)} km</dd>
+    <dt>신차정가(옵션포함)</dt><dd>${money(p.new_price)}</dd>
+    <dt>추가옵션 수</dt><dd>${options.length}개</dd>
+  `;
+  $('pCond').innerHTML = `
+    <dt>완전무사고</dt><dd>${yesno(p.accident_free)}</dd>
+    <dt>단순교환</dt><dd>${yesno(p.simple_exchange)}</dd>
+    <dt>내차 피해 건수</dt><dd>${num(p.my_accident_count)}</dd>
+    <dt>외판</dt><dd>${num(p.panel_count)}판</dd>
+    <dt>소유자 변경</dt><dd>${num(p.owner_changes)}회</dd>
+  `;
+  if (usePractical) {
+    $('pBid').innerHTML = `
+      <dt>실무 판매가</dt><dd>${money(pc.sale_price)}</dd>
+      <dt>실무 입찰가</dt><dd>${money(pc.bid_price)}</dd>
+      <dt>예상 이익</dt><dd>${money(pc.expected_profit)}</dd>
+      <dt>수수료</dt><dd>${money(pc.commission)}</dd>
+      <dt>매입비(2.2%)</dt><dd>${money(pc.buying_cost)}</dd>
+      <dt>총 차감</dt><dd>${money(pc.total_deductions)}</dd>
+    `;
+  } else {
+    $('pBid').innerHTML = `
+      <dt>추천 입찰가</dt><dd>${money(ob.recommended_bid_price)}</dd>
+      <dt>예상 이익</dt><dd>${money(ob.expected_profit)}</dd>
+      <dt>수익 상한가</dt><dd>${money(ob.profit_ceiling)}</dd>
+      <dt>시장 목표가</dt><dd>${money(ob.market_target)}</dd>
+      <dt>리스크 버퍼</dt><dd>${money(ob.risk_buffer)}</dd>
+      <dt>DB 표본 수</dt><dd>${num(bs.comp_count)}</dd>
+    `;
+  }
+
+  currentReviewLinks = [];
+  if (dbg.review_web_url) {
+    currentReviewLinks.push({ label: '엔카 조회(키로수 확장)', url: dbg.review_web_url });
+  }
+  if (dbg.review_broad_web_url && dbg.review_broad_web_url !== dbg.review_web_url) {
+    currentReviewLinks.push({ label: '엔카 조회(백업)', url: dbg.review_broad_web_url });
+  }
+  if (dbg.review_manual_url) {
+    currentReviewLinks.push({ label: '엔카 검색(수동)', url: dbg.review_manual_url });
+  }
+  if (dbg.direct_web_url && dbg.direct_web_url !== dbg.review_web_url) {
+    currentReviewLinks.push({ label: '엔카 조회(원본 조건)', url: dbg.direct_web_url });
+  }
+  renderReviewLinks();
+
+  const ids = (dbg.sample_ids || []).slice(0, 6).join(', ');
+  if (data.pricing_basis === 'no_market_data') {
+    $('msg').textContent = `완료(주의): 동일 트림/유사 조건 엔카 표본이 부족해 판매가/입찰가를 산출하지 못함 / 저장 ID #${data.id}`;
+  } else {
+    $('msg').textContent = `완료: 엔카 샘플ID ${ids || '-'} / API호출 ${dbg.api_calls ?? '-'}회 / 저장 ID #${data.id}`;
+  }
+
+  await loadRecent();
+}
+
+$('btnAnalyze').addEventListener('click', analyze);
+$('useSourceProfiles').addEventListener('change', applySourceProfileUiState);
+$('btnCalcBid').addEventListener('click', runQuickCalc);
+$('btnCalcClear').addEventListener('click', () => {
+  $('cSale').value = '';
+  $('cRepair').value = '0';
+  $('cMargin').value = '0';
+  $('cAd').value = '11';
+  $('cPlatform').value = 'autoinside';
+  $('calcResult').textContent = '판매가를 입력해 계산하세요.';
+});
+$('btnPracticalCalc').addEventListener('click', runPracticalDockCalc);
+$('btnPracticalClear').addEventListener('click', () => {
+  $('pSale').value = '';
+  $('pRepair').value = '0';
+  $('pMargin').value = '100';
+  $('pAd').value = '11';
+  $('pPlatform').value = 'autoinside';
+  $('practicalCalcResult').textContent = '예상 판매가를 입력하면 추천 입찰가를 즉시 반영합니다.';
+});
+$('btnClear').addEventListener('click', () => {
+  $('rawText').value = '';
+  $('useSourceProfiles').value = appConfig.enable_source_profiles ? '1' : '0';
+  $('modelOverride').value = '';
+  $('trimOverride').value = '';
+  $('practicalSale').value = '';
+  $('practicalRepair').value = '0';
+  $('practicalAd').value = '11';
+  $('practicalMargin').value = '100';
+  $('practicalPlatform').value = 'autoinside';
+  $('pSale').value = '';
+  $('pRepair').value = '0';
+  $('pMargin').value = '100';
+  $('pAd').value = '11';
+  $('pPlatform').value = 'autoinside';
+  $('practicalCalcResult').textContent = '예상 판매가를 입력하면 추천 입찰가를 즉시 반영합니다.';
+  applySourceProfileUiState();
+  $('msg').textContent = '';
+  currentReviewLinks = [];
+  renderReviewLinks();
+  $('opts').innerHTML = '';
+  $('pCar').innerHTML = '';
+  $('pSpec').innerHTML = '';
+  $('pCond').innerHTML = '';
+  $('pBid').innerHTML = '';
+});
+
+loadConfig().then(loadRecent);
+renderReviewLinks();
+document.body.classList.add('with-calc');
+</script>
+</body>
+</html>
